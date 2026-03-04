@@ -3,55 +3,63 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Plot Locator - Dynamic Hover</title>
+    <title>Plot Locator - Golden Theme</title>
     <style>
-        body { font-family: 'Segoe UI', sans-serif; margin: 0; padding: 20px; background: #f8f9fa; text-align: center; }
+        body { font-family: 'Segoe UI', sans-serif; background: #f4f7f6; text-align: center; margin: 0; padding: 20px; }
         
-        .map-wrapper { position: relative; display: inline-block; transition: filter 0.3s ease; }
-        
-        /* This class is added via JS when hovering over a plot */
-        .dimmed img { filter: grayscale(100%) brightness(50%); }
+        .container { position: relative; display: inline-block; margin: auto; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        img { display: block; width: 100%; height: auto; }
 
-        .map-container { position: relative; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
-        img { display: block; width: 100%; height: auto; transition: all 0.3s ease; }
+        /* The Golden Boundary Highlight */
+        #highlight-box {
+            position: absolute;
+            display: none;
+            border: 2px solid #D4AF37; /* Golden boundary */
+            background: rgba(212, 175, 55, 0.15); /* Faint golden tint */
+            pointer-events: none; 
+            z-index: 10;
+            box-sizing: border-box;
+        }
 
-        /* Floating Hover Box (Tooltip) */
+        /* Smart Tooltip: Golden Accent */
         #tooltip {
             position: fixed;
             display: none;
             background: white;
-            padding: 12px;
-            border-radius: 8px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-            pointer-events: none; /* Allows mouse to "pass through" to the map */
-            z-index: 9999;
-            width: 180px;
+            padding: 8px 10px;
+            border-radius: 6px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+            pointer-events: none;
+            z-index: 10000;
+            min-width: 100px;
+            max-width: 160px;
             text-align: left;
-            border-left: 4px solid #3498db;
+            border-top: 4px solid #D4AF37; /* Golden top border */
+            word-wrap: break-word; 
+            overflow-wrap: break-word;
         }
 
-        .t-label { font-size: 0.7rem; color: #95a5a6; text-transform: uppercase; font-weight: bold; }
-        .t-value { font-size: 0.95rem; color: #2c3e50; margin-bottom: 5px; display: block; }
-        .status-tag { display: inline-block; padding: 2px 6px; border-radius: 4px; font-size: 0.8rem; color: white; font-weight: bold; }
+        .t-label { font-size: 0.65rem; color: #95a5a6; text-transform: uppercase; font-weight: bold; display: block; margin-bottom: 1px; }
+        .t-value { font-size: 0.85rem; color: #2c3e50; margin-bottom: 6px; display: block; line-height: 1.2; font-weight: 500; }
+        
+        .t-value:last-child { margin-bottom: 0; }
     </style>
 </head>
 <body>
 
-    <h2>Hover Over Plots</h2>
+    <h2 style="color: #444;">Interactive Plot Map</h2>
 
-    <div class="map-wrapper" id="map-wrapper">
-        <div class="map-container">
-            <img src="{{ url_for('static', filename='map.png') }}" usemap="#image-map" id="main-map">
-            <map name="image-map">
-                <area shape="rect" coords="296,260,329,243" 
-                      onmouseover="handleHover(true, '38')" 
-                      onmouseout="handleHover(false)" href="javascript:void(0)">
-                
-                <area shape="rect" coords="297,262,331,278" 
-                      onmouseover="handleHover(true, '39')" 
-                      onmouseout="handleHover(false)" href="javascript:void(0)">
-            </map>
-        </div>
+    <div class="container" id="map-container">
+        <img id="map-image" src="{{ url_for('static', filename='map.png') }}" usemap="#plot-map">
+        <div id="highlight-box"></div>
+
+        <map name="plot-map">
+            <area shape="rect" coords="296,260,329,243" onmouseover="handleHover(this, '38')" onmouseout="hideHover()" href="javascript:void(0)">
+            <area shape="rect" coords="297,262,331,278" onmouseover="handleHover(this, '39')" onmouseout="hideHover()" href="javascript:void(0)">
+            <area shape="rect" coords="294,281,333,296" onmouseover="handleHover(this, '40')" onmouseout="hideHover()" href="javascript:void(0)">
+            <area shape="rect" coords="294,293,329,312" onmouseover="handleHover(this, '41')" onmouseout="hideHover()" href="javascript:void(0)">
+            <area shape="rect" coords="293,328,330,315" onmouseover="handleHover(this, '42')" onmouseout="hideHover()" href="javascript:void(0)">
+        </map>
     </div>
 
     <div id="tooltip">
@@ -62,45 +70,44 @@
     <script>
         imageMapResize();
 
+        const highlight = document.getElementById('highlight-box');
         const tooltip = document.getElementById('tooltip');
-        const wrapper = document.getElementById('map-wrapper');
 
-        // Track mouse to move the tooltip
-        document.addEventListener('mousemove', function(e) {
+        document.addEventListener('mousemove', (e) => {
             tooltip.style.left = (e.clientX + 15) + 'px';
             tooltip.style.top = (e.clientY + 15) + 'px';
         });
 
-        function handleHover(isEntering, id) {
-            if (isEntering) {
-                // Dim the rest of the map
-                wrapper.classList.add('dimmed');
-                
-                // Fetch dynamic data
-                fetch(`/get_plot_details?id=${id}`)
-                    .then(res => res.json())
-                    .then(data => {
-                        if (data.error) return;
+        function handleHover(area, id) {
+            const coords = area.coords.split(',').map(Number);
+            highlight.style.left = coords[0] + 'px';
+            highlight.style.top = coords[1] + 'px';
+            highlight.style.width = (coords[2] - coords[0]) + 'px';
+            highlight.style.height = (coords[3] - coords[1]) + 'px';
+            highlight.style.display = 'block';
 
-                        const statusColor = data.status.toLowerCase().includes('avail') ? '#27ae60' : '#e74c3c';
-                        
-                        document.getElementById('tooltip-content').innerHTML = `
-                            <span class="t-label">Plot ID</span>
-                            <span class="t-value">#${data.plot_id}</span>
-                            <span class="t-label">Size</span>
-                            <span class="t-value">${data.size}</span>
-                            <span class="t-label">Status</span>
-                            <span class="t-value"><span class="status-tag" style="background:${statusColor}">${data.status}</span></span>
-                            <span class="t-label">Owner</span>
-                            <span class="t-value">${data.owner}</span>
-                        `;
-                        tooltip.style.display = 'block';
-                    });
-            } else {
-                // Reset map and hide tooltip
-                wrapper.classList.remove('dimmed');
-                tooltip.style.display = 'none';
-            }
+            fetch(`/get_plot_details?id=${id}`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.error) return;
+                    
+                    document.getElementById('tooltip-content').innerHTML = `
+                        <span class="t-label">Plot ID</span>
+                        <span class="t-value" style="color:#D4AF37;">#${data.plot_id}</span>
+                        <span class="t-label">Dimensions</span>
+                        <span class="t-value">${data.size}</span>
+                        <span class="t-label">Status</span>
+                        <span class="t-value">${data.status}</span>
+                        <span class="t-label">Owner Name</span>
+                        <span class="t-value">${data.owner}</span>
+                    `;
+                    tooltip.style.display = 'block';
+                });
+        }
+
+        function hideHover() {
+            highlight.style.display = 'none';
+            tooltip.style.display = 'none';
         }
     </script>
 </body>
