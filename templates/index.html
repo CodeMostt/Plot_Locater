@@ -82,4 +82,22 @@
                     body.innerHTML = `
                         <div class="info-row"><span class="label">Plot Number</span><span class="value">${data.plot_id}</span></div>
                         <div class="info-row"><span class="label">Size</span><span class="value">${data.size}</span></div>
-                        <div class="info-row"><span class="label">Status</span><span class
+                        <div class="info-row"><span class="label">Status</span><span class="value">${data.status}</span></div>
+                        <div class="info-row"><span class="label">Owner</span><span class="value">${data.owner}</span></div>
+                    `;
+                    modal.style.display = "block";
+                });
+        }
+
+        function closeModal() {
+            document.getElementById('plotModal').style.display = "none";
+        }
+
+        // Close modal if user clicks outside of the white box
+        window.onclick = function(event) {
+            const modal = document.getElementById('plotModal');
+            if (event.target == modal) closeModal();
+        }
+    </script>
+</body>
+</html>
