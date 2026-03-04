@@ -5,92 +5,81 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Plot Locator</title>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f0f2f5; margin: 0; padding: 20px; }
+        body { font-family: 'Segoe UI', sans-serif; margin: 0; padding: 10px; background: #f0f2f5; text-align: center; }
         
-        /* Side-by-Side Layout */
-        .main-wrapper { display: flex; gap: 30px; align-items: flex-start; justify-content: center; flex-wrap: wrap; }
-
-        /* Left Side: Map */
-        .map-section { background: white; padding: 15px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); max-width: 600px; }
+        /* Map Container */
+        .map-container { 
+            position: relative; display: inline-block; 
+            max-width: 100%; background: white; 
+            padding: 5px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
         img { display: block; width: 100%; height: auto; }
 
-        /* Right Side: Fixed Details Pane */
-        .details-section { 
-            flex: 1; min-width: 300px; max-width: 400px; position: sticky; top: 20px;
-            background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-            border-top: 8px solid #3498db; height: fit-content;
+        /* The Modal (Background) */
+        .modal {
+            display: none; position: fixed; z-index: 1000; 
+            left: 0; top: 0; width: 100%; height: 100%; 
+            background-color: rgba(0,0,0,0.7);
         }
 
-        h2 { color: #2c3e50; margin-top: 0; border-bottom: 2px solid #eee; padding-bottom: 10px; }
-        .info-row { margin: 15px 0; font-size: 1.1em; line-height: 1.6; }
-        .label { font-weight: bold; color: #7f8c8d; display: block; font-size: 0.9em; text-transform: uppercase; }
-        .value { color: #2c3e50; font-size: 1.2em; }
-        
-        /* Placeholder styling */
-        .empty-msg { color: #95a5a6; font-style: italic; text-align: center; margin-top: 50px; }
+        /* Modal Content Box */
+        .modal-content {
+            background-color: #fff; margin: 20% auto; padding: 20px;
+            border-radius: 12px; width: 80%; max-width: 400px;
+            position: relative; text-align: left;
+            animation: slideUp 0.3s ease-out;
+        }
+
+        @keyframes slideUp {
+            from { transform: translateY(50px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .close-btn {
+            position: absolute; right: 15px; top: 10px;
+            font-size: 24px; cursor: pointer; color: #aaa;
+        }
+
+        .info-row { margin: 15px 0; border-bottom: 1px solid #eee; padding-bottom: 5px; }
+        .label { font-weight: bold; color: #7f8c8d; font-size: 0.8em; text-transform: uppercase; }
+        .value { color: #2c3e50; font-size: 1.1em; display: block; margin-top: 4px; }
     </style>
 </head>
 <body>
 
-    <h1 style="text-align: center;">Interactive Plot Locator</h1>
+    <h2>Select a Plot</h2>
 
-    <div class="main-wrapper">
-        <div class="map-section">
-            <img src="{{ url_for('static', filename='map.png') }}" usemap="#image-map" id="map-img">
-            <map name="image-map">
-                <area shape="rect" coords="296,260,329,243" onmouseover="fetchDetails('38')" href="javascript:void(0)" alt="Plot 38">
-                <area shape="rect" coords="297,262,331,278" onmouseover="fetchDetails('39')" href="javascript:void(0)" alt="Plot 39">
-                </map>
-        </div>
+    <div class="map-container">
+        <img src="{{ url_for('static', filename='map.png') }}" usemap="#image-map">
+        <map name="image-map">
+            <area shape="rect" coords="296,260,329,243" onclick="showPopup('38')" href="javascript:void(0)">
+            <area shape="rect" coords="297,262,331,278" onclick="showPopup('39')" href="javascript:void(0)">
+        </map>
+    </div>
 
-        <div class="details-section" id="details-pane">
-            <h2>Plot Information</h2>
-            <div id="plot-info">
-                <p class="empty-msg">Hover over a plot to see its details</p>
-            </div>
+    <div id="plotModal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" onclick="closeModal()">&times;</span>
+            <h3 id="modal-title" style="margin-top:0; color:#3498db;">Plot Details</h3>
+            <div id="modal-body">
+                </div>
         </div>
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/image-map-resizer/1.0.10/js/imageMapResizer.min.js"></script>
     <script>
-        // Keep the map coordinates accurate when resized
         imageMapResize();
 
-        function fetchDetails(id) {
+        function showPopup(id) {
             fetch(`/get_plot_details?id=${id}`)
                 .then(res => res.json())
                 .then(data => {
-                    const infoDiv = document.getElementById('plot-info');
+                    const modal = document.getElementById('plotModal');
+                    const body = document.getElementById('modal-body');
                     
-                    if (data.error) {
-                        infoDiv.innerHTML = `<p style="color:red;">Data for Plot ${id} not found.</p>`;
-                        return;
-                    }
+                    if (data.error) return;
 
-                    // Update the right-side box content
-                    infoDiv.innerHTML = `
-                        <div class="info-row">
-                            <span class="label">Plot ID</span>
-                            <span class="value">${data.plot_id}</span>
-                        </div>
-                        <div class="info-row">
-                            <span class="label">Total Size</span>
-                            <span class="value">${data.size}</span>
-                        </div>
-                        <div class="info-row">
-                            <span class="label">Availability Status</span>
-                            <span class="value" style="color: ${data.status === 'Available' ? '#27ae60' : '#e74c3c'}">
-                                ${data.status}
-                            </span>
-                        </div>
-                        <div class="info-row">
-                            <span class="label">Owner Name</span>
-                            <span class="value">${data.owner}</span>
-                        </div>
-                    `;
-                })
-                .catch(err => console.error("Fetch Error:", err));
-        }
-    </script>
-</body>
-</html>
+                    body.innerHTML = `
+                        <div class="info-row"><span class="label">Plot Number</span><span class="value">${data.plot_id}</span></div>
+                        <div class="info-row"><span class="label">Size</span><span class="value">${data.size}</span></div>
+                        <div class="info-row"><span class="label">Status</span><span class
