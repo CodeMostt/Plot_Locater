@@ -1,0 +1,3 @@
+plot_id,size,status,owner,coords
+1,15' x 40',Sold,John Doe,"296,260,329,243"
+2,15' x 40',Available,N/A,"297,262,331,278"
