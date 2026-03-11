@@ -5,170 +5,151 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Techunited - Plot Locator</title>
     <style>
-        /* Color Mapping: Registry=Green, Booked=Yellow, Vacant=Red */
         :root { 
-            --gold: #D4AF37; 
-            --registry: #2ecc71; 
-            --booked: #f1c40f;   
-            --vacant: #e74c3c;   
-            --edit: #3498db;     
+            --gold: #D4AF37; --registry: #2ecc71; --booked: #f1c40f; 
+            --vacant: #e74c3c; --edit: #3498db; --bg: #f4f7f6; 
         }
         
-        body { font-family: 'Segoe UI', sans-serif; background: #f4f7f6; margin: 0; padding: 15px; text-align: center; color: #333; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); margin: 0; padding: 15px; text-align: center; }
         
         /* Admin Bar */
         .admin-bar { text-align: right; padding-bottom: 10px; font-size: 0.8rem; }
-        .admin-btn { background: none; border: 1px solid #ccc; cursor: pointer; padding: 4px 10px; border-radius: 4px; transition: 0.3s; }
-        .admin-btn:hover { background: #eee; }
-        .admin-status { color: var(--registry); font-weight: bold; }
-
-        .header h1 { color: #2c3e50; font-size: 1.6rem; margin-bottom: 5px; }
-        .header p { font-size: 0.85rem; color: #7f8c8d; margin-bottom: 20px; }
+        .admin-btn { background: none; border: 1px solid #ccc; cursor: pointer; padding: 4px 10px; border-radius: 4px; }
+        
+        .header h1 { color: #2c3e50; font-size: 1.6rem; margin-bottom: 20px; }
 
         /* Controls */
         .controls { display: flex; flex-direction: column; align-items: center; gap: 15px; margin-bottom: 25px; }
         .row { display: flex; justify-content: center; gap: 10px; width: 100%; max-width: 600px; flex-wrap: wrap; }
-        
-        select, input { padding: 12px; border-radius: 8px; border: 1px solid #ddd; font-size: 1rem; width: 100%; max-width: 200px; outline: none; }
-        .btn-search { background: var(--gold); color: white; border: none; padding: 12px 20px; border-radius: 8px; cursor: pointer; font-weight: bold; }
-
-        #search-area { display: none; }
+        select, input { padding: 12px; border-radius: 8px; border: 1px solid #ddd; width: 100%; max-width: 200px; outline: none; }
+        .btn-search { background: var(--gold); color: white; border: none; padding: 12px 20px; border-radius: 8px; font-weight: bold; cursor: pointer; }
 
         /* Map UI */
-        .map-section { 
-            display: none; margin: 0 auto; max-width: 1200px; 
-            border: 3px solid var(--gold); border-radius: 12px; 
-            position: relative; overflow: hidden; background: white; 
-            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-        }
-        .container { position: relative; width: 100%; line-height: 0; }
+        .map-section { display: none; margin: 0 auto; max-width: 1200px; border: 3px solid var(--gold); border-radius: 12px; position: relative; overflow: hidden; background: white; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
         #map-image { width: 100%; height: auto; display: block; }
-        
         #svg-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 10; pointer-events: none; }
-        polygon { pointer-events: auto; transition: fill 0.2s, stroke 0.2s; cursor: pointer; }
+        polygon { pointer-events: auto; cursor: pointer; transition: 0.2s; }
 
-        /* Tooltip */
+        /* Tooltip & Edit Box */
         #tooltip { 
-            position: fixed; display: none; background: white; padding: 15px; 
-            border-radius: 10px; box-shadow: 0 8px 30px rgba(0,0,0,0.3); 
-            z-index: 10000; width: 260px; text-align: left; border-top: 6px solid var(--gold); 
+            position: fixed; display: none; background: white; padding: 15px; border-radius: 10px; 
+            box-shadow: 0 8px 30px rgba(0,0,0,0.3); z-index: 10000; width: 260px; text-align: left; 
+            border-top: 6px solid var(--gold); pointer-events: auto; 
         }
-        @media (max-width: 600px) { #tooltip { width: 85%; left: 7.5% !important; top: 10% !important; } }
-        
         .t-label { font-size: 0.65rem; color: #95a5a6; text-transform: uppercase; font-weight: bold; display: block; margin-top: 8px; }
         .t-value { font-size: 0.95rem; color: #2c3e50; font-weight: 600; display: block; }
-        
-        .edit-input { width: 100%; padding: 8px; margin-top: 4px; border: 1px solid #ddd; border-radius: 6px; font-size: 0.9rem; box-sizing: border-box; }
+        .edit-input { width: 100%; padding: 8px; margin-top: 4px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; }
         .btn-save { background: #27ae60; color: white; border: none; padding: 12px; border-radius: 6px; font-weight: bold; width: 100%; margin-top: 15px; cursor: pointer; }
-        .btn-close { background: #f1f1f1; border: none; padding: 5px 10px; border-radius: 4px; float: right; cursor: pointer; }
+        .btn-edit-inline { margin-top:15px; width:100%; padding:8px; background:var(--edit); color:white; border:none; border-radius:5px; cursor:pointer; font-weight:bold; }
+
+        /* Summary Bar */
+        .summary-bar { display: none; justify-content: center; gap: 15px; margin-top: 20px; flex-wrap: wrap; }
+        .summary-card { background: white; padding: 10px 20px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); border-bottom: 4px solid #ddd; min-width: 100px; }
+        .summary-card.total { border-color: var(--gold); }
+        .summary-card.reg { border-color: var(--registry); }
+        .summary-card.book { border-color: var(--booked); }
+        .summary-card.vacant { border-color: var(--vacant); }
+        .s-count { font-size: 1.4rem; font-weight: bold; display: block; color: #2c3e50; }
+        .s-label { font-size: 0.7rem; text-transform: uppercase; color: #95a5a6; font-weight: bold; }
 
         .legend { display: flex; justify-content: center; gap: 20px; margin-top: 20px; font-size: 0.8rem; }
-        .legend-item { display: flex; align-items: center; gap: 5px; }
-        .dot { width: 12px; height: 12px; border-radius: 3px; }
+        .dot { width: 12px; height: 12px; border-radius: 3px; display: inline-block; margin-right: 5px; }
     </style>
 </head>
 <body>
-
     <div class="admin-bar">
-        {% if is_admin %}
-            <span class="admin-status">● Admin Mode</span> | <a href="/logout" style="color:red; text-decoration:none;">Logout</a>
-        {% else %}
-            <button class="admin-btn" onclick="showLoginPrompt()">Admin Login</button>
-        {% endif %}
+        {% if is_admin %} <span style="color:var(--registry); font-weight:bold;">● Admin Mode Active</span> | <a href="/logout" style="color:red; text-decoration:none;">Logout</a>
+        {% else %} <button class="admin-btn" onclick="showLoginPrompt()">Admin Login</button> {% endif %}
     </div>
 
-    <div class="header">
-        <h1>Techunited Plot Locator</h1>
-        <p>Interactive Map & Inventory Tracker</p>
-    </div>
+    <div class="header"><h1>Techunited Plot Locator</h1></div>
 
     <div class="controls">
         <div class="row">
             <select id="city-select" onchange="updateProjects()">
                 <option value="">Select City</option>
-                {% for city in cities %}
-                <option value="{{ city }}">{{ city }}</option>
-                {% endfor %}
+                {% for city in cities %}<option value="{{ city }}">{{ city }}</option>{% endfor %}
             </select>
             <select id="project-select" onchange="loadMap()" disabled></select>
         </div>
-        <div class="row" id="search-area">
+        <div class="row" id="search-area" style="display:none;">
             <input type="text" id="plot-search" placeholder="Enter Plot ID (e.g. 1)">
             <button class="btn-search" onclick="searchPlot()">Find Plot</button>
         </div>
     </div>
 
     <div id="map-area" class="map-section">
-        <div class="container">
+        <div style="position:relative;">
             <img id="map-image" src="">
             <svg id="svg-overlay"></svg>
         </div>
     </div>
 
-    <div class="legend" id="map-legend" style="display:none;">
-        <div class="legend-item"><div class="dot" style="background:var(--registry)"></div> Registry done</div>
-        <div class="legend-item"><div class="dot" style="background:var(--booked)"></div> Booked</div>
-        <div class="legend-item"><div class="dot" style="background:var(--vacant)"></div> Vacant</div>
+    <div class="summary-bar" id="summary-bar">
+        <div class="summary-card total"><span class="s-count" id="count-total">0</span><span class="s-label">Total</span></div>
+        <div class="summary-card reg"><span class="s-count" id="count-reg">0</span><span class="s-label">Registry Done</span></div>
+        <div class="summary-card book"><span class="s-count" id="count-book">0</span><span class="s-label">Booked</span></div>
+        <div class="summary-card vacant"><span class="s-count" id="count-vacant">0</span><span class="s-label">Vacant</span></div>
     </div>
 
-    <div id="tooltip">
-        <button class="btn-close" onclick="closeTooltip()">✕</button>
-        <div id="tooltip-content"></div>
+    <div class="legend" id="map-legend" style="display:none;">
+        <span><div class="dot" style="background:var(--registry)"></div> Registry done</span>
+        <span><div class="dot" style="background:var(--booked)"></div> Booked</span>
+        <span><div class="dot" style="background:var(--vacant)"></div> Vacant</span>
     </div>
+
+    <div id="tooltip"><div id="tooltip-content"></div></div>
 
     <script>
-        // Wrapped in quotes to prevent VS Code "Red" errors
         const IS_ADMIN = "{{ 'true' if is_admin else 'false' }}" === "true";
-        
         const citySel = document.getElementById('city-select'), projSel = document.getElementById('project-select');
-        const searchArea = document.getElementById('search-area'), mapArea = document.getElementById('map-area');
         const mapImg = document.getElementById('map-image'), svgOverlay = document.getElementById('svg-overlay');
         const tooltip = document.getElementById('tooltip');
         
-        let isLocked = false, currentPlotData = null, activePoly = null, lastFetchedPlots = [], touchTimer, searchTimer;
+        let isLocked = false, currentPlotData = null, activePoly = null, lastFetchedPlots = [], hideTimer;
 
         function showLoginPrompt() {
-            const user = prompt("Admin Username:");
-            const pass = prompt("Admin Password:");
+            const user = prompt("Admin Username:"), pass = prompt("Admin Password:");
             if (user && pass) {
-                fetch('/login', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({username: user, password: pass})
-                }).then(res => res.json()).then(data => {
-                    if(data.success) location.reload();
-                    else alert("Access Denied");
-                });
+                fetch('/login', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({username: user, password: pass}) })
+                .then(res => res.json()).then(data => { if(data.success) location.reload(); else alert("Denied"); });
             }
         }
 
         function updateProjects() {
-            const city = citySel.value;
-            projSel.innerHTML = '<option value="">Select Project</option>';
-            mapArea.style.display = 'none'; searchArea.style.display = 'none';
-            document.getElementById('map-legend').style.display = 'none';
-            if (!city) { projSel.disabled = true; return; }
-            fetch(`/get_projects?city=${city}`).then(res => res.json()).then(projects => {
-                projects.forEach(p => {
-                    let opt = document.createElement('option');
-                    opt.value = p; opt.innerHTML = p.replace(/_/g, ' ').toUpperCase();
-                    projSel.appendChild(opt);
+            fetch(`/get_projects?city=${citySel.value}`).then(res => res.json()).then(projects => {
+                projSel.innerHTML = '<option value="">Select Project</option>';
+                projects.forEach(p => { 
+                    let opt = document.createElement('option'); 
+                    opt.value = p; opt.innerHTML = p.replace(/_/g, ' ').toUpperCase(); 
+                    projSel.appendChild(opt); 
                 });
                 projSel.disabled = false;
             });
         }
 
+        function updateSummary(plots) {
+            let total = plots.length;
+            let reg = plots.filter(p => p.status.toLowerCase().includes('reg')).length;
+            let book = plots.filter(p => p.status.toLowerCase().includes('book')).length;
+            let vacant = total - (reg + book);
+            document.getElementById('count-total').innerText = total;
+            document.getElementById('count-reg').innerText = reg;
+            document.getElementById('count-book').innerText = book;
+            document.getElementById('count-vacant').innerText = vacant;
+            document.getElementById('summary-bar').style.display = 'flex';
+        }
+
         function loadMap() {
-            const city = citySel.value, project = projSel.value;
-            if (!project) return;
-            mapImg.src = `/static/${city}/${project}/map.png`;
-            mapArea.style.display = 'block';
-            fetch(`/get_all_plots?city=${city}&project=${project}`).then(res => res.json()).then(plots => {
-                lastFetchedPlots = plots;
-                searchArea.style.display = 'flex';
+            mapImg.src = `/static/${citySel.value}/${projSel.value}/map.png`;
+            document.getElementById('map-area').style.display = 'block';
+            fetch(`/get_all_plots?city=${citySel.value}&project=${projSel.value}`).then(res => res.json()).then(plots => {
+                lastFetchedPlots = plots; 
+                document.getElementById('search-area').style.display = 'flex'; 
                 document.getElementById('map-legend').style.display = 'flex';
+                updateSummary(plots);
                 mapImg.onload = () => renderPlots(plots);
-                if (mapImg.complete) mapImg.onload();
+                if(mapImg.complete) mapImg.onload();
             });
         }
 
@@ -176,22 +157,15 @@
             if (activePoly) resetPolygon(activePoly);
             activePoly = poly;
             const s = status.trim().toLowerCase();
-            let fill, stroke;
-
-            if (s === 'editing') {
-                fill = "rgba(52, 152, 219, 0.4)"; stroke = "var(--edit)";
-            } else if (s === 'registry done') {
-                fill = "rgba(46, 204, 113, 0.4)"; stroke = "var(--registry)";
-            } else if (s === 'booked') {
-                fill = "rgba(241, 196, 15, 0.4)"; stroke = "var(--booked)";
-            } else {
-                fill = "rgba(231, 76, 60, 0.4)"; stroke = "var(--vacant)";
-            }
-
+            let color, fill;
+            if (s.includes('reg')) { color = "#2ecc71"; fill = "rgba(46, 204, 113, 0.4)"; }
+            else if (s.includes('book')) { color = "#f1c40f"; fill = "rgba(241, 196, 15, 0.4)"; }
+            else if (s === 'editing') { color = "#3498db"; fill = "rgba(52, 152, 219, 0.4)"; }
+            else { color = "#e74c3c"; fill = "rgba(231, 76, 60, 0.4)"; }
             poly.setAttribute("fill", fill);
-            poly.setAttribute("stroke", stroke);
+            poly.setAttribute("stroke", color);
             poly.setAttribute("stroke-width", "4");
-            tooltip.style.borderTopColor = stroke;
+            tooltip.style.borderTopColor = color;
         }
 
         function resetPolygon(poly) { if (poly) { poly.setAttribute("fill", "transparent"); poly.setAttribute("stroke", "transparent"); } }
@@ -203,85 +177,78 @@
                 const poly = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
                 poly.setAttribute("points", plot.coords);
                 poly.setAttribute("fill", "transparent");
-                poly.id = "poly-" + plot.plot_id;
+                poly.id = "poly-" + String(plot.plot_id).trim();
 
-                poly.onmouseover = () => { if (!isLocked) { highlightPolygon(poly, plot.status); showInfo(plot); } };
-                poly.onmouseout = () => { if (!isLocked) { resetPolygon(poly); tooltip.style.display = 'none'; } };
-                
-                if (IS_ADMIN) {
-                    poly.oncontextmenu = (e) => { e.preventDefault(); highlightPolygon(poly, 'editing'); startEdit(plot, e.clientX, e.clientY); };
-                    poly.ontouchstart = (e) => { 
-                        if (isLocked) return;
-                        touchTimer = setTimeout(() => { highlightPolygon(poly, 'editing'); startEdit(plot, e.touches[0].clientX, e.touches[0].clientY); }, 800); 
-                    };
-                    poly.ontouchend = () => clearTimeout(touchTimer);
-                }
+                poly.onmouseover = () => { if (!isLocked) { clearTimeout(hideTimer); highlightPolygon(poly, plot.status); showInfo(plot); } };
+                poly.onmouseout = () => { if (!isLocked) { hideTimer = setTimeout(() => { if (!tooltip.matches(':hover')) closeTooltip(); }, 300); } };
+                if (IS_ADMIN) poly.oncontextmenu = (e) => { e.preventDefault(); highlightPolygon(poly, 'editing'); startEdit(plot, e.clientX, e.clientY); };
                 svgOverlay.appendChild(poly);
             });
         }
 
+        tooltip.onmouseenter = () => clearTimeout(hideTimer);
+        tooltip.onmouseleave = () => { if (!isLocked) closeTooltip(); };
+
         function searchPlot() {
-            const id = document.getElementById('plot-search').value.trim();
-            const match = lastFetchedPlots.find(p => p.plot_id == id);
+            const searchId = document.getElementById('plot-search').value.trim();
+            const match = lastFetchedPlots.find(p => String(p.plot_id).trim() === searchId);
             if (match) {
-                if (searchTimer) clearTimeout(searchTimer);
-                const poly = document.getElementById("poly-" + id);
-                highlightPolygon(poly, match.status); showInfo(match);
-                mapArea.scrollIntoView({ behavior: 'smooth' });
-                searchTimer = setTimeout(() => { if (!isLocked) closeTooltip(); }, 10000);
-            } else alert("Plot ID not found");
+                const poly = document.getElementById("poly-" + String(match.plot_id).trim());
+                if (poly) {
+                    highlightPolygon(poly, match.status);
+                    showInfo(match);
+                    poly.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+            } else { alert("Plot ID not found."); }
         }
 
         function showInfo(data) {
-            tooltip.style.pointerEvents = 'none';
+            currentPlotData = data;
             const s = data.status.trim().toLowerCase();
-            let statusColor = "var(--vacant)";
-            if (s === 'registry done') statusColor = "var(--registry)";
-            else if (s === 'booked') statusColor = "var(--booked)";
-
+            let statusColor = s.includes('reg') ? "#2ecc71" : s.includes('book') ? "#f1c40f" : "#e74c3c";
             let content = `
-                <span class="t-label">Plot ID</span><span class="t-value" style="color:var(--gold);">#${data.plot_id}</span>
-                <span class="t-label">Size</span><span class="t-value">${data.size}</span>
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <span class="t-label">Plot ID</span><span class="t-value" style="color:var(--gold);">#${data.plot_id}</span>
+                </div>
+                <span class="t-label">Size</span><span class="t-value">${data.size || 'N/A'}</span>
                 <span class="t-label">Status</span><span class="t-value" style="color:${statusColor}">${data.status}</span>
-                <span class="t-label">Customer Name</span><span class="t-value">${data.owner || 'N/A'}</span>
-            `;
+                <span class="t-label">Owner</span><span class="t-value">${data.owner || 'N/A'}</span>`;
 
-            if (s === 'booked' || s === 'registry done') {
-                content += `
-                    <span class="t-label">Number</span><span class="t-value">${data.customer_number || 'N/A'}</span>
-                    <span class="t-label">Booking Date</span><span class="t-value">${data.booking_date || 'N/A'}</span>
-                `;
+            if (!s.includes('vac')) {
+                content += `<span class="t-label">Number</span><span class="t-value">${data.customer_number || 'N/A'}</span>
+                            <span class="t-label">Booking Date</span><span class="t-value">${data.booking_date || 'N/A'}</span>`;
             }
-            if (s === 'registry done') {
+            if (s.includes('reg')) {
                 content += `<span class="t-label">Registry Date</span><span class="t-value">${data.registry_date || 'N/A'}</span>`;
             }
-
+            if (IS_ADMIN) content += `<button class="btn-edit-inline" onclick="triggerEditFromHover()">Edit Plot</button>`;
             document.getElementById('tooltip-content').innerHTML = content;
             tooltip.style.display = 'block';
         }
 
+        function triggerEditFromHover() { const rect = tooltip.getBoundingClientRect(); startEdit(currentPlotData, rect.left, rect.top); }
+
         function startEdit(data, x, y) {
-            isLocked = true; if (searchTimer) clearTimeout(searchTimer);
-            currentPlotData = data; tooltip.style.pointerEvents = 'auto';
-            if (window.innerWidth < 600) { tooltip.style.left = "7.5%"; tooltip.style.top = "10%"; }
-            else { tooltip.style.left = x + 'px'; tooltip.style.top = y + 'px'; }
-            
+            isLocked = true; currentPlotData = data;
+            tooltip.style.left = x + 'px'; tooltip.style.top = y + 'px';
             document.getElementById('tooltip-content').innerHTML = `
-                <strong>Edit Plot #${data.plot_id}</strong>
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                    <strong>Edit Plot #${data.plot_id}</strong>
+                    <button onclick="closeTooltip()" style="background:none; border:none; font-size:1.5rem; cursor:pointer; color:#999;">&times;</button>
+                </div>
                 <span class="t-label">Size</span><input type="text" id="edit-size" value="${data.size}" class="edit-input">
                 <span class="t-label">Status</span>
                 <select id="edit-status" class="edit-input">
-                    <option value="Registry done" ${data.status === 'Registry done' ? 'selected' : ''}>Registry done</option>
-                    <option value="Booked" ${data.status === 'Booked' ? 'selected' : ''}>Booked</option>
-                    <option value="Vacant" ${data.status === 'Vacant' ? 'selected' : ''}>Vacant</option>
+                    <option value="Registry done" ${data.status.includes('Reg') ? 'selected' : ''}>Registry done</option>
+                    <option value="Booked" ${data.status.includes('Book') ? 'selected' : ''}>Booked</option>
+                    <option value="Vacant" ${data.status.includes('Vac') ? 'selected' : ''}>Vacant</option>
                 </select>
-                <span class="t-label">Customer Name</span><input type="text" id="edit-owner" value="${data.owner}" class="edit-input">
+                <span class="t-label">Owner Name</span><input type="text" id="edit-owner" value="${data.owner}" class="edit-input">
                 <span class="t-label">Number</span><input type="text" id="edit-num" value="${data.customer_number || ''}" class="edit-input">
                 <span class="t-label">Booking Date</span><input type="date" id="edit-book-date" value="${data.booking_date || ''}" class="edit-input">
                 <span class="t-label">Registry Date</span><input type="date" id="edit-reg-date" value="${data.registry_date || ''}" class="edit-input">
                 <button class="btn-save" onclick="saveDetails()">Save Changes</button>
-            `;
-            tooltip.style.display = 'block';
+                <button onclick="closeTooltip()" style="margin-top:8px; width:100%; padding:10px; background:#f1f1f1; border:none; border-radius:6px; cursor:pointer;">Cancel</button>`;
         }
 
         function saveDetails() {
@@ -289,16 +256,17 @@
                 city: citySel.value, project: projSel.value, plot_id: currentPlotData.plot_id,
                 size: document.getElementById('edit-size').value, status: document.getElementById('edit-status').value,
                 owner: document.getElementById('edit-owner').value, customer_number: document.getElementById('edit-num').value,
-                booking_date: document.getElementById('edit-book-date').value,
-                registry_date: document.getElementById('edit-reg-date').value
+                booking_date: document.getElementById('edit-book-date').value, registry_date: document.getElementById('edit-reg-date').value
             };
             fetch('/save_plot_details', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
             .then(res => res.json()).then(res => { if(res.success) { isLocked = false; closeTooltip(); loadMap(); } });
         }
 
-        function closeTooltip() { isLocked = false; if (searchTimer) clearTimeout(searchTimer); if (activePoly) resetPolygon(activePoly); tooltip.style.display = 'none'; }
+        function closeTooltip() { isLocked = false; if (activePoly) resetPolygon(activePoly); tooltip.style.display = 'none'; }
         
-        document.addEventListener('mousemove', (e) => { if (!isLocked && window.innerWidth > 600) { tooltip.style.left = (e.clientX + 15) + 'px'; tooltip.style.top = (e.clientY + 15) + 'px'; } });
+        document.addEventListener('mousemove', (e) => { 
+            if (!isLocked && !tooltip.matches(':hover')) { tooltip.style.left = (e.clientX + 15) + 'px'; tooltip.style.top = (e.clientY + 15) + 'px'; } 
+        });
     </script>
 </body>
 </html>
